@@ -11,9 +11,9 @@
   "num_output_snowflakes": 5,
   "score_params": {
     "connectedness_weight": 0.0,
-    "airiness_weight": 0.0,
+    "airiness_weight": 2.0,
     "spikiness_weight": 15.0,
-    "cragginess_weight": 0.0,
+    "cragginess_weight": 1.0,
     "max_density": 0.6,
     "max_radius": 35,
     "min_radius": 30

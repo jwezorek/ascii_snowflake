@@ -6,6 +6,7 @@
 #include <map>
 #include <tuple>
 #include <print>
+#include <execution>
 
 namespace r = std::ranges;
 namespace rv = std::ranges::views;
@@ -277,12 +278,10 @@ namespace {
             params.spikiness_weight * spikiness;
     }
 
-    snowflake_info generate_snowflake(const state_table& tbl, const asf::settings& settings) {
-        auto state = random_initial_grid(
-            settings.primordial_soup_density,
-            settings.num_states,
-            settings.primordial_soup_radius
-        );
+    snowflake_info generate_snowflake(
+            const asf::hex_grid& initial_configuration, const state_table& tbl, 
+            const asf::settings& settings) {
+        auto state = initial_configuration;
         for (int i = 0; i < settings.num_iterations; ++i) {
             state = do_cellular_automata_step(state, tbl);
         }
@@ -313,20 +312,32 @@ namespace {
         int tries = 0;
         while (score <= last_score && tries < settings.tries_per_generation) {
             std::print(".");
-            std::vector<state_table> children;
+
+            std::vector<std::tuple<state_table, asf::hex_grid>> work_items;
             for (int child = 0; child < settings.num_children; ++child) {
-                children.push_back(
+                work_items.emplace_back(
                     mix_state_tables(
                         asf::random_element(population), asf::random_element(population)
+                    ),
+                    random_initial_grid(
+                        settings.primordial_soup_density,
+                        settings.num_states,
+                        settings.primordial_soup_radius
                     )
                 );
             }
 
-            snowflakes = children | rv::transform(
-                [&](auto&& tbl) {
-                    return generate_snowflake(tbl, settings);
+            snowflakes.resize(work_items.size());
+            std::transform(
+                std::execution::par,
+                work_items.begin(),
+                work_items.end(),
+                snowflakes.begin(),
+                [&](const auto& work_item) {
+                    const auto& [tbl, seed] = work_item;
+                    return generate_snowflake(seed, tbl, settings);
                 }
-            ) | r::to<std::vector>();
+            );
 
             r::sort(snowflakes,
                 [](const snowflake_info& lhs, const snowflake_info& rhs) {

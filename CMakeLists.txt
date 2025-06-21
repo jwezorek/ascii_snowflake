@@ -8,4 +8,5 @@ add_executable(ascii_snowflake
     src/main.cpp
     src/hex_grid.cpp
     src/snowflake.cpp
- "src/util.cpp")
+    src/util.cpp
+)
