@@ -1,0 +1,21 @@
+{
+  "population_sz": 10,
+  "num_children": 100,
+  "num_states": 5,
+  "primordial_soup_density": 0.45,
+  "primordial_soup_radius": 25,
+  "state_table_density": 0.45,
+  "max_generations": 30,
+  "tries_per_generation": 15,
+  "num_iterations": 25,
+  "num_output_snowflakes": 5,
+  "score_params": {
+    "connectedness_weight": 0.0,
+    "airiness_weight": 0.0,
+    "spikiness_weight": 15.0,
+    "cragginess_weight": 0.0,
+    "max_density": 0.6,
+    "max_radius": 35,
+    "min_radius": 30
+  }
+}
