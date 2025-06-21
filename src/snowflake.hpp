@@ -10,6 +10,7 @@ namespace asf {
         double airiness_weight;
         double spikiness_weight;
         double cragginess_weight;
+        double min_density;
         double max_density;
         int    max_radius;
         int    min_radius;

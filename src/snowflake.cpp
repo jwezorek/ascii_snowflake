@@ -251,10 +251,10 @@ namespace {
         double connectedness = 0.0;
         if (is_connected(grid, false)) {
             connectedness = 1.0;
-        }
-        else if (is_connected(grid, true)) {
+        } else if (is_connected(grid, true)) {
             connectedness = k_connected_by_diagonals_score;
         }
+
         if (connectedness == 0.0) {
             return 0.0;
         }
@@ -265,7 +265,8 @@ namespace {
         }
 
         auto airiness = snowflake_airiness(grid, radius);
-        if (1.0 - airiness > params.max_density) {
+        auto density = 1.0 - airiness;
+        if (density < params.min_density || density > params.max_density) {
             return 0.0;
         }
 

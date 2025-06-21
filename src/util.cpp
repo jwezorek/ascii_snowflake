@@ -72,6 +72,7 @@ asf::settings asf::load_settings_from_file(const std::string& path) {
         s.score_params.airiness_weight = sp.at("airiness_weight").get<double>();
         s.score_params.spikiness_weight = sp.at("spikiness_weight").get<double>();
         s.score_params.cragginess_weight = sp.at("cragginess_weight").get<double>();
+        s.score_params.min_density = sp.at("min_density").get<double>();
         s.score_params.max_density = sp.at("max_density").get<double>();
         s.score_params.max_radius = sp.at("max_radius").get<int>();
         s.score_params.min_radius = sp.at("min_radius").get<int>();
