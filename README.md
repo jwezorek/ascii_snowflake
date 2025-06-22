@@ -1,116 +1,136 @@
 
 ![snowflake_1](https://github.com/user-attachments/assets/4e0d7c11-dfa9-4f71-ad3d-be2a5ce11d62)
 
-# ASCII SNOWFLAKE GENERATOR
+# ASCII SNOWFLAKE
 
-This is a C++23 command-line program that generates ASCII images of symmetric, snowflake-like patterns on a hexagonal grid using cellular automata and a simple genetic algorithm. The codebase has no dependencies beyond the C++ standard library and the header-only library nlohmann/json, which is vendored into the codebase.
+ASCII Snowflake Generator is a C++23 command-line program that produces intricate, symmetric snowflake patterns on a hexagonal grid using cellular automata and a basic genetic algorithm. The output is rendered entirely in ASCII, and the resulting patterns reflect a blend of structured geometry and emergent complexity.
 
-Usage:
+The project is entirely self-contained. It requires only the C++ standard library and a single vendored header-only dependency: nlohmann/json.
 
-`ascii_snowflake.exe settings.json [optional numeric seed for rnd gen]`
+## How to Use  
+To run the program:  
+`ascii_snowflake.exe settings.json [optional numeric seed]`  
+* `settings.json` is a required configuration file (explained below).
+* The optional seed ensures repeatable randomness.
 
-## HOW IT WORKS
+## How it Works
 
-The basic idea of this program is the following ... (The algorithm is a little more complex but the following is the gist of it)
+The program evolves cellular automata on a hexagonal grid to generate symmetric, snowflake-like patterns. Each snowflake is the result of:
 
-1. **Generate a Population of Random State Tables**  
-Each state table defines update rules for a cellular automaton operating on a hex grid. These tables are initialized randomly at the start of a run.
+1. A randomly generated rule table (state transition logic)
 
-2. **Grow Snowflakes via Cellular Automata**  
-Each state table is used to evolve a snowflake. The automaton begins with a random, symmetric triangular seed and runs for a fixed number of steps. 
+2. A symmetric seed initialized in a 60° wedge
 
-3. **Score Each Snowflake**  
-A scoring function evaluates how "snowflake-like" each result is, using a combination of structural and aesthetic heuristics.
+3. A series of automaton updates
 
-4. **Select the Best Snowflakes**  
-The top-scoring snowflakes are selected, and their associated state tables are retained for breeding.
+4. A fitness function that scores the result
 
-5. **Mix the Best State Tables**  
-New state tables (children) are created by randomly mixing entries from two parent state tables. Each entry is independently chosen from either parent with 50% probability.
+5. A simple genetic algorithm that selects and recombines the best rule tables over multiple generations
 
-6. **Repeat**  
-The new generation of state tables replaces the old, and the process repeats until no improvement is observed or a fixed number of generations has passed.
+See **Algorithm Details** below for the full breakdown of the algorithm.
 
-## HEX GRIDS AND COORDINATES
+## Algorithm Details  
+Snowflake generation proceeds through a genetic algorithm that evolves a population of cellular automaton rule tables over several generations.
 
-Hexagonal grids are stored as hash tables that map hex coordinates to cell states. Each cell uses "cube coordinates" ( [as described here](https://www.redblobgames.com/grids/hexagons/) ), represented as a triplet (q, r, s) such that q + r + s = 0. This coordinate system simplifies neighborhood queries, rotations, and distance calculations on a regular hex grid.
+### Main Loop
+Each generation follows this process:
 
-### ASCII Hex Grid Rendering
-In ASCII output, each hex cell is rendered using two adjacent characters (e.g. "[]", "oo", or "{}"). When these character pairs are arranged in a staggered, brick-layer pattern, they replicate the topology of a true hex grid:
+1. **Initial Population**  
+A random population of population_sz state tables is created. These define the cellular automaton update rules.
 
-* Even rows are offset horizontally, just like rows of bricks or honeycomb cells.
+2. **Snowflake Growth and Scoring**  
+For each generation:
 
-* This works particularly well with monospaced ASCII fonts, because most terminal characters are taller than they are wide.
+    * A pool of num_children new candidate rule tables is created by mixing pairs of parent tables (randomly selected from the previous generation).
 
-* As a result, two adjacent ASCII characters — when rendered side by side — more closely approximate the bounding shape of a true hexagon than square pixels would.
+    * Each child is paired with a random symmetric seed, initialized with a given primordial_soup_density, primordial_soup_radius, and number of num_states.
 
-This makes ASCII an unexpectedly effective medium for visualizing hexagonal structures like snowflakes.
+    * These seeds are evolved into snowflakes by running the cellular automaton for num_iterations steps.
 
-### STATE TABLES
+    * Each snowflake is scored using the configured fitness metrics.
 
-Each state table defines the evolution rules for an automaton. It is a 2D array of the form:
+3. **Selection**  
+The top population_sz snowflakes are selected based on score. Their associated rule tables form the next generation.
 
-`state_table[current_state][neighbor_sum] → next_state`
+4. **Termination Criteria**  
+The algorithm tracks whether the average score improves:
 
-* Rows represent the current state of a cell (e.g. 0 for dead, 1-N for alive states).
+    * If the new generation outperforms the previous one (higher mean score), it proceeds.
 
-* Columns represent the sum of states in the cell’s six neighboring hexes.
+    * Otherwise, it retries (up to tries_per_generation times) before terminating early.
 
-* Values specify the cell's next state given its current state and neighborhood.
+    * Evolution halts after max_generations or when no improvement is detected.
 
-## SYMMETRIC INITIALIZATION
+### Parallel Execution  
+To accelerate performance, snowflake generation is parallelized using std::execution::par. Each child rule table and its associated seed are evolved independently, making the process embarrassingly parallel.
 
-### Triangular Region
-Each snowflake begins from a random but symmetric seed defined within a triangular wedge — a 60° sector of the full snowflake, expressed in cube coordinates. This is a small equilateral triangle of hexes radiating out from the origin.
+### Final Output  
+After the final generation:
 
-### Bilateral Symmetry
-Random cell states are assigned within this triangle, but every cell is mirrored horizontally across the wedge’s vertical axis. This enforces bilateral symmetry using a flip_horz() function.
+* The top num_output_snowflakes snowflakes are returned, each representing a distinct state table and its evolved pattern.
 
-### Sixfold Symmetry via Rotation
-The symmetric wedge is cloned and rotated around the origin in 60° increments using a rotate() function. The union of all six rotated copies forms a snowflake with strict six-fold radial symmetry.
+## Hex Grids and ASCII Rendering
 
-This guarantees that all initial snowflakes are perfectly symmetric, even before any evolution occurs.
+Hexagonal grids are implemented using hash maps keyed by cube coordinates (q, r, s) with the constraint q + r + s = 0. This coordinate system makes it easier to compute distances, neighbor relationships, and rotations. See [Red Blob Games for a detailed explanation](https://www.redblobgames.com/grids/hexagons/).
 
-## SCORING METRICS
+### ASCII Layout  
+In ASCII rendering, each hex cell is drawn using two adjacent characters (e.g. "[]", "oo", "{}"). These are arranged in a staggered, brick-like pattern:
 
-After running the automaton for a fixed number of iterations, the resulting snowflake is evaluated using a fitness function composed of the following metrics:
+* Even-numbered rows are offset horizontally to form a proper hex grid topology.
 
-### Connectedness
-Checks whether the snowflake forms a single contiguous structure. Partial credit is given if the snowflake is only diagonally connected.
+* Most terminal fonts are taller than they are wide, making this two-character format a good visual approximation of a regular hexagon.
 
-### Airiness
-Rewards snowflakes that are not overly dense. Calculated as the proportion of empty space in a bounding hex region.
+* As a result, ASCII becomes a surprisingly effective medium for depicting radial symmetry and hex-based geometry.
 
-### Cragginess
-Measures edge irregularity by identifying peripheral cells that are near clusters of live neighbors and checking for local connectivity.
+## Symmetric Initialization  
+Snowflake seeds are initialized within a 60° triangular wedge of the hex grid, then reflected and rotated to create full symmetry.
 
-### Spikiness
-Measures how much of the snowflake’s mass lies along the long outer edges of the original triangular wedge. Snowflakes with sharp, radial arm-like protrusions receive higher scores.
+### Step-by-Step:  
+1. **Triangular Region**  
+The seed occupies an equilateral triangle in cube coordinates, radiating from the origin.
 
-Each metric is weighted individually and combined into a final score.
+2. **Bilateral Symmetry**  
+Cells within the wedge are mirrored across the vertical axis.
 
-## EVOLUTION AND TERMINATION
+3. **Sixfold Rotation**  
+The wedge is cloned and rotated in 60° increments using, forming a complete snowflake.
 
-A population of state tables is evolved over multiple generations:
+This process ensures that all snowflakes start with perfect symmetry before any evolution occurs, and because the cellular automaton rules treat all neighborhood directions identically, the snowflakes are guaranteed to retain the symmetry of their initial seeds as they evolve.
 
-* In each generation, snowflakes are grown from the current population of state tables.
+## State Tables  
+Each state table defines rules for the automaton. It’s a 2D array:
 
-* The top performers are selected and used to breed new state tables by entry-wise mixing.
+`state_table[current_state][neighbor_sum] → next_state`  
+* **Rows** = current cell state (0 = dead; others = alive).
 
-* If the mean score improves, the new generation becomes the basis for the next.
+* **Columns** = sum of the six neighboring states.
 
-* Otherwise, evolution halts after a fixed number of stagnant attempts.
+* **Values** = resulting new state of the cell.
 
-At the end, the best snowflakes from the final generation are returned.
+These tables govern the cellular automaton’s evolution behavior.
 
-## OUTPUT
+## Scoring Metrics  
+After a snowflake has evolved for a fixed number of iterations, it is scored using several heuristics. These are combined into a weighted fitness value:
 
-The result is a set of six-fold symmetric hex grid patterns — ASCII snowflakes — grown and selected based on structural beauty and complexity. Each snowflake reflects the behavior of its originating state table and embodies the emergent properties of the underlying automaton.
+* **Connectedness**  
+Rewards fully contiguous structures. Partial credit for diagonal-only connectivity.
 
-## JSON SETTINGS FILE
+* **Airiness**  
+Favors snowflakes with open space (low density within a bounding radius).
 
-The program is configured via a JSON file passed as the first command-line argument. It must include the following keys:
-```
+* **Cragginess**  
+Detects local edge complexity by checking peripheral cells near dense clusters.
+
+* **Spikiness**  
+Measures radial arm extension by checking how much structure lies along the outermost triangle edges.
+
+Each metric has an associated weight, and candidates falling outside density or radius thresholds are discarded.
+
+## JSON Configuration  
+
+All settings are provided via a JSON file:
+
+```json
 {
   "population_sz": 20,
   "num_children": 200,
@@ -133,58 +153,33 @@ The program is configured via a JSON file passed as the first command-line argum
   }
 }
 ```
-### PARAMETER DESCRIPTIONS
+### Parameter Descriptions
 
-* population_sz:  
-Number of state tables kept per generation.
+| Key | Description |
+|-----|-------------|
+| `population_sz` | Number of state tables per generation |
+| `num_children` | Number of child tables created per generation |
+| `num_states` | Possible states per cell (0 = dead) |
+| `primordial_soup_density` | Probability a seed cell is alive |
+| `primordial_soup_radius` | Radius of triangular seed region |
+| `state_table_density` | Probability a rule is nonzero |
+| `max_generations` | Evolution stops after this many generations |
+| `tries_per_generation` | Retry attempts before skipping a generation |
+| `num_iterations` | Iterations per snowflake |
+| `num_output_snowflakes` | Number of snowflakes returned at the end |
 
-* num_children:  
-Number of children created per generation (before selection).
+**Scoring Parameters:**
 
-* num_states:  
-Number of possible cell states (0 = dead, others are alive).
+| Key | Description |
+|-----|-------------|
+| `connectedness_weight` | Reward for structural cohesion |
+| `airiness_weight` | Reward for sparse, open patterns |
+| `spikiness_weight` | Emphasizes long radial protrusions |
+| `cragginess_weight` | Emphasizes irregular edges |
+| `max_density`, `min_density` | Bounds on filled cell ratio |
+| `max_radius`, `min_radius` | Bounds on overall snowflake size |
 
-* primordial_soup_density:  
-Probability a cell is alive in the initial triangle.
-
-* primordial_soup_radius:  
-Radius (in hexes) of the triangular seed region.
-
-* state_table_density:  
-Probability that a transition rule is nonzero.
-
-* max_generations:  
-Maximum number of generations to evolve.
-
-* tries_per_generation:  
-Max retry attempts before giving up on a generation.
-
-* num_iterations:  
-Number of CA iterations to run per snowflake.
-
-* num_output_snowflakes:  
-How many top snowflakes to return.
-
-Inside score_params:
-
-* connectedness_weight:  
-Weight for structure connectivity.
-
-* airiness_weight:  
-Weight for sparseness / negative space.
-
-* spikiness_weight:  
-Weight for sharp, radial edge adherence.
-
-* cragginess_weight:  
-Weight for irregular edges.
-
-* max_density, min_density:  
-Reject any snowflake denser / less dense than this.
-
-* max_radius, min_radius:  
-Reject snowflakes outside this size range.
-
+## Sample Output
 ![snowflake_2](https://github.com/user-attachments/assets/3bce1271-fcca-4b3f-8d58-7c612e4a918c)
 ![snowflake_3](https://github.com/user-attachments/assets/89e5643e-fdb5-478e-a7b4-1fbc60b65e9e)
 ![snowflake_4](https://github.com/user-attachments/assets/2c5b853d-2f83-4e9c-b8e9-6dd09d7ce8f8)
