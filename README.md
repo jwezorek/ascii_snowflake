@@ -48,7 +48,7 @@ This makes ASCII an unexpectedly effective medium for visualizing hexagonal stru
 
 ### STATE TABLES
 
-Each state table defines the evolution rules for the automaton. It is a 2D array of the form:
+Each state table defines the evolution rules for an automaton. It is a 2D array of the form:
 
 `state_table[current_state][neighbor_sum] → next_state`
 
