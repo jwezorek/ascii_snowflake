@@ -33,7 +33,7 @@ The new generation of state tables replaces the old, and the process repeats unt
 
 ## HEX GRIDS AND COORDINATES
 
-Hexagonal grids are stored as hash tables that map hex coordinates to cell states. Each cell uses cube coordinates, represented as a triplet (q, r, s) such that q + r + s = 0. This coordinate system simplifies neighborhood queries, rotations, and distance calculations on a regular hex grid.
+Hexagonal grids are stored as hash tables that map hex coordinates to cell states. Each cell uses "cube coordinates" ( [as described here](https://www.redblobgames.com/grids/hexagons/) ), represented as a triplet (q, r, s) such that q + r + s = 0. This coordinate system simplifies neighborhood queries, rotations, and distance calculations on a regular hex grid.
 
 ### ASCII Hex Grid Rendering
 In ASCII output, each hex cell is rendered using two adjacent characters (e.g. "[]", "oo", or "{}"). When these character pairs are arranged in a staggered, brick-layer pattern, they replicate the topology of a true hex grid:
